@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+indexeddby应用，请查看console
+</body>
+</html>
+<script>
+    function connectedDB(version) {
+        return new Promise((resolve, reject) => {
+            var db
+            var request = window.indexedDB.open('table_user_select', version)
+            request.onerror = function (event) {
+                console.log('数据库打开报错')
+                reject()
+            }
+            request.onsuccess = function (event) {
+                db = request.result;
+                console.log('数据库打开成功');
+                resolve(db)
+            };
+            request.onupgradeneeded = function(event) {
+                db = event.target.result;
+                var objectStore;
+                if (!db.objectStoreNames.contains('person')) {
+                    objectStore = db.createObjectStore('person', { keyPath: 'id' });
+                    objectStore.createIndex('name', 'name', { unique: false });
+                    objectStore.createIndex('email', 'email', { unique: true });
+                }
+                if (!db.objectStoreNames.contains('table')) {
+                    var tableStore = db.createObjectStore('table', {keyPath: 'name'})
+                    tableStore.createIndex('selectedColum', 'selectedColum', {unique: false})
+                }
+                console.log('数据库onupgradeneeded');
+            }
+        })
+    }
+    connectedDB(3).then((db) => {
+//        add(db)
+//        update(db)
+//        readAll(db)
+//        addTable(db, 'ssid_list', ['name', 'id', 'desc']) //  ssid_list ap_list
+//        updateTable(db)
+        readTableAll(db)
+    })
+    function addTable(db, newList, selectedColum) {
+        var request = db.transaction(['table'], 'readwrite')
+            .objectStore('table')
+            .add({name: newList, selectedColum: selectedColum})
+        request.onerror = function (event) {
+            console.log('数据写入table失败');
+        }
+        request.onsuccess = function (event) {
+            console.log('数据写入table成功');
+        }
+    }
+    function updateTable(db) {
+        var request = db.transaction(['table'], 'readwrite')
+            .objectStore('table')
+            .put({name: 'ap_list', selectedColum: ['name', 'mac', 'desc', 'state']});
+
+        request.onsuccess = function (event) {
+            console.log('数据更新table成功');
+        };
+
+        request.onerror = function (event) {
+            console.log('数据更新table失败');
+        }
+    }
+    function readTableAll(db) {
+        var objectStore = db.transaction('table').objectStore('table');
+
+        objectStore.openCursor().onsuccess = function (event) {
+            var cursor = event.target.result;
+
+            if (cursor) {
+                console.log('key: ' + cursor.key);
+                console.log('name: ' + cursor.value.name);
+                console.log('selectedColum: ' + cursor.value.selectedColum);
+                cursor.continue();
+            } else {
+                console.log('没有更多数据了！');
+            }
+        };
+    }
+    function add(db) {
+        var request = db.transaction(['person'], 'readwrite')
+            .objectStore('person')
+            .add({ id: 3, name: 'dfdf', age: 24, email: 'qq@example.com' });
+
+        request.onsuccess = function (event) {
+            console.log('数据写入成功');
+        };
+
+        request.onerror = function (event) {
+            console.log('数据写入失败');
+        }
+    }
+//    add()
+    function read() {
+        var transaction = db.transaction(['person']);
+        var objectStore = transaction.objectStore('person');
+        var request = objectStore.get(1);
+
+        request.onerror = function(event) {
+            console.log('事务失败');
+        };
+
+        request.onsuccess = function( event) {
+            if (request.result) {
+                console.log('Name: ' + request.result.name);
+                console.log('Age: ' + request.result.age);
+                console.log('Email: ' + request.result.email);
+            } else {
+                console.log('未获得数据记录');
+            }
+        };
+    }
+//    read();
+    function readAll(db) {
+        var objectStore = db.transaction('person').objectStore('person');
+
+        objectStore.openCursor().onsuccess = function (event) {
+            var cursor = event.target.result;
+
+            if (cursor) {
+                console.log('Id: ' + cursor.key);
+                console.log('Name: ' + cursor.value.name);
+                console.log('Age: ' + cursor.value.age);
+                console.log('Email: ' + cursor.value.email);
+                cursor.continue();
+            } else {
+                console.log('没有更多数据了！');
+            }
+        };
+    }
+
+//    readAll();
+    function update(db) {
+        var request = db.transaction(['person'], 'readwrite')
+            .objectStore('person')
+            .put({ id: 2, name: 'qq', age: 30, email: 'qqq@example.com' });
+
+        request.onsuccess = function (event) {
+            console.log('数据更新成功');
+        };
+
+        request.onerror = function (event) {
+            console.log('数据更新失败');
+        }
+    }
+
+//    update();
+</script>
